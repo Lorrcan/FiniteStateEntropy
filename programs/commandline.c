@@ -45,6 +45,8 @@
 #include "bench.h"
 #include "fileio.h"   /* FIO_setCompressor */
 
+//#include "fileiozstd.h"   /* FIO_setCompressor */
+
 
 /***************************************************
 *  OS-specific Includes
@@ -101,6 +103,7 @@ static int usage(void)
     DISPLAY(" -h : use huff0\n");
 	DISPLAY(" -p#: use password to encode\\decode\n");
     DISPLAY(" -z : use zlib's huffman\n");
+	DISPLAY(" -s : use ZSTD\n");
     DISPLAY(" -d : decompression (default for %s extension)\n", FSE_EXTENSION);
     DISPLAY(" -b : benchmark mode\n");
     DISPLAY(" -i#: iteration loops [1-9](default : 4), benchmark mode only\n");
@@ -138,6 +141,8 @@ int main(int argc, char** argv)
     size_t tmpFilenameSize     = 0;
     char  extension[] = FSE_EXTENSION;
     FIO_compressor_t compressor = FIO_fse;
+
+	int zstd = 0;
 
 
     /* Welcome message */
@@ -183,8 +188,11 @@ int main(int argc, char** argv)
                     BMK_SetByteCompressor(1);
                     compressor = FIO_fse;
                     break;
-
-                    // huff0 selection
+				case 's':
+					DISPLAY("ZSTD compression\n");
+					// need to add compression
+					break;
+                    // zstd selection
                 case 'h':
                     BMK_SetByteCompressor(2);
                     compressor = FIO_huff0;
@@ -340,6 +348,7 @@ int main(int argc, char** argv)
     else
     {
         FIO_setCompressor(compressor);
+
 		FIO_compressFilename(output_filename, input_filename, passwordValue);
     }
 
