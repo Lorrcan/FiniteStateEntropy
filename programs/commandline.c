@@ -142,7 +142,7 @@ int main(int argc, char** argv)
     char  extension[] = FSE_EXTENSION;
     FIO_compressor_t compressor = FIO_fse;
 
-	int zstd = 0;
+	//int zstd = 0;
 
 
     /* Welcome message */

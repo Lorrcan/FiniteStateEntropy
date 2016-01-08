@@ -266,6 +266,29 @@ size_t FIO_ZLIBH_compress(void* dst, size_t dstSize, const void* src, size_t src
     return (size_t)ZLIBH_compress((char*)dst, (const char*)src, (int)srcSize);
 }
 
+static int password_length = 0;
+
+static void setSeed(const char* password)
+{
+	int seed = 0;
+	for (int index = 0; index < password_length; index++)
+	{
+		seed += (int)password[index];
+	}
+	srand(seed + password_length);
+}
+
+static unsigned simlple_scrambler(const char * password, int index)
+{
+	return rand() % (unsigned)password[index % password_length];
+}
+
+static unsigned empty_scrambler(const char * password, int index)
+{
+	if (password && index) { }
+	return 0;
+}
+
 /*
 Compressed format : MAGICNUMBER - STREAMDESCRIPTOR - ( BLOCKHEADER - COMPRESSEDBLOCK ) - STREAMCRC
 MAGICNUMBER - 4 bytes - Designates compression algo
@@ -334,11 +357,21 @@ unsigned long long FIO_compressFilename(const char* output_filename, const char*
     if (sizeCheck!=FIO_FRAMEHEADERSIZE) EXM_THROW(22, "Write error : cannot write header");
     compressedfilesize += FIO_FRAMEHEADERSIZE;
 
+	unsigned index = 0;
+	unsigned (*scrambler_func)(const char *, int);
+	if (password != NULL)
+	{
+		password_length = strlen(password);
+		setSeed(password);
+		scrambler_func = simlple_scrambler;
+	} else
+	{
+		scrambler_func = empty_scrambler;
+	}
+
     /* Main compression loop */
     while (1)
     {
-		if (password){}
-		unsigned scrambler = 10; // wartoœæ powinna siê zmieniaæ w zale¿noœci od has³a przy encodowaniu kolejnych bloków
         /* Fill input Buffer */
         size_t cSize;
         size_t inSize = fread(in_buff, (size_t)1, (size_t)inputBlockSize, finput);
@@ -348,7 +381,7 @@ unsigned long long FIO_compressFilename(const char* output_filename, const char*
         DISPLAYUPDATE(2, "\rRead : %u MB   ", (U32)(filesize>>20));
 
         /* Compress Block */
-		cSize = compressor(out_buff + FIO_maxBlockHeaderSize, FSE_compressBound(inputBlockSize), in_buff, inSize, scrambler);
+		cSize = compressor(out_buff + FIO_maxBlockHeaderSize, FSE_compressBound(inputBlockSize), in_buff, inSize, scrambler_func(password, index++));
         if (FSE_isError(cSize)) EXM_THROW(23, "Compression error : %s ", FSE_getErrorName(cSize));
 
         /* Write cBlock */
@@ -533,12 +566,23 @@ unsigned long long FIO_decompressFilename(const char* output_filename, const cha
     sizeCheck = fread(in_buff, 1, 1, finput);
     if (sizeCheck != 1) EXM_THROW(34, "Read error : cannot read header\n");
     /* Main Loop */
+
+	unsigned index = 0;
+	unsigned(*scrambler_func)(const char *, int);
+	if (password != NULL)
+	{
+		password_length = strlen(password);
+		setSeed(password);
+		scrambler_func = simlple_scrambler;
+	}
+	else
+	{
+		scrambler_func = empty_scrambler;
+	}
+
     while (1)
     {
-		if (password){}
-		unsigned scrambler = 10; // wartoœæ powinna siê zmieniaæ w zale¿noœci od has³a przy encodowaniu kolejnych bloków
         size_t toReadSize, readSize, bType, rSize=0, cSize;
-
         //static U32 blockNb=0;
         //printf("blockNb = %u \n", ++blockNb);
 
@@ -580,7 +624,8 @@ unsigned long long FIO_decompressFilename(const char* output_filename, const cha
         switch(bType)
         {
           case bt_compressed :
-			  rSize = decompressor(out_buff, rSize, in_buff, cSize, scrambler);
+			  //rSize = decompressor(out_buff, rSize, in_buff, cSize, scrambler);
+			  rSize = decompressor(out_buff, rSize, in_buff, cSize, scrambler_func(password, index++));
             if (FSE_isError(rSize)) EXM_THROW(39, "Decoding error : %s", FSE_getErrorName(rSize));
             break;
           case bt_raw :

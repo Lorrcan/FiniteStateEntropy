@@ -303,13 +303,16 @@ size_t FSE_FUNCTION_NAME(FSE_buildCTable, FSE_FUNCTION_EXTENSION)
     } 
 
 	// tutaj dodaæ jakiœ scrambler z mieszaniem
-	FSE_FUNCTION_TYPE item;
-	unsigned size = tableSize - scrambler;
-	for (i = 0; i < size; i++)
+	if (scrambler != 0)
 	{
-		item = tableSymbol[i];
-		tableSymbol[i] = tableSymbol[i + scrambler];
-		tableSymbol[i + scrambler] = item;
+		FSE_FUNCTION_TYPE item;
+		unsigned size = tableSize - scrambler;
+		for (i = 0; i < size; i++)
+		{
+			item = tableSymbol[i];
+			tableSymbol[i] = tableSymbol[i + scrambler];
+			tableSymbol[i + scrambler] = item;
+		}
 	}
 
     if (position!=0) return ERROR(GENERIC);   /* Must have gone through all positions */
@@ -419,13 +422,16 @@ size_t FSE_FUNCTION_NAME(FSE_buildDTable, FSE_FUNCTION_EXTENSION)
     }
 
 	// tutaj dodaæ jakiœ scrambler odmieszaj¹cy
-	FSE_DECODE_TYPE item;
-	unsigned size = tableSize - scrambler;
-	for (s = 0; s < size; s++)
+	if (scrambler != 0)
 	{
-		item = tableDecode[s];
-		tableDecode[s] = tableDecode[s + scrambler];
-		tableDecode[s + scrambler] = item;
+		FSE_DECODE_TYPE item;
+		unsigned size = tableSize - scrambler;
+		for (s = 0; s < size; s++)
+		{
+			item = tableDecode[s];
+			tableDecode[s] = tableDecode[s + scrambler];
+			tableDecode[s + scrambler] = item;
+		}
 	}
 
     if (position!=0) return ERROR(GENERIC);   /* position must reach all cells once, otherwise normalizedCounter is incorrect */
