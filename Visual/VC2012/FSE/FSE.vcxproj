@@ -41,8 +41,17 @@
     <ClCompile Include="..\..\..\programs\bench.c" />
     <ClCompile Include="..\..\..\programs\commandline.c" />
     <ClCompile Include="..\..\..\programs\fileio.c" />
+    <ClCompile Include="..\..\..\programs\isaac64\isaac64.c" />
     <ClCompile Include="..\..\..\programs\xxhash.c" />
     <ClCompile Include="..\..\..\programs\zlibh.c" />
+    <ClCompile Include="..\..\..\programs\zstd\fileiozstd.c" />
+    <ClCompile Include="..\..\..\programs\zstd\fileio_legacy.c" />
+    <ClCompile Include="..\..\..\programs\zstd\zstd_buffered.c" />
+    <ClCompile Include="..\..\..\programs\zstd\zstd_compress.c" />
+    <ClCompile Include="..\..\..\programs\zstd\zstd_decompress.c" />
+    <ClCompile Include="..\..\..\programs\zstd\zstd_v01.c" />
+    <ClCompile Include="..\..\..\programs\zstd\zstd_v02.c" />
+    <ClCompile Include="..\..\..\programs\zstd\zstd_v03.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\lib\bitstream.h" />
@@ -55,8 +64,21 @@
     <ClInclude Include="..\..\..\lib\mem.h" />
     <ClInclude Include="..\..\..\programs\bench.h" />
     <ClInclude Include="..\..\..\programs\fileio.h" />
+    <ClInclude Include="..\..\..\programs\isaac64\isaac64.h" />
+    <ClInclude Include="..\..\..\programs\isaac64\standard.h" />
     <ClInclude Include="..\..\..\programs\xxhash.h" />
     <ClInclude Include="..\..\..\programs\zlibh.h" />
+    <ClInclude Include="..\..\..\programs\zstd\fileiozstd.h" />
+    <ClInclude Include="..\..\..\programs\zstd\fileio_legacy.h" />
+    <ClInclude Include="..\..\..\programs\zstd\zstd.h" />
+    <ClInclude Include="..\..\..\programs\zstd\zstd_buffered.h" />
+    <ClInclude Include="..\..\..\programs\zstd\zstd_buffered_static.h" />
+    <ClInclude Include="..\..\..\programs\zstd\zstd_internal.h" />
+    <ClInclude Include="..\..\..\programs\zstd\zstd_legacy.h" />
+    <ClInclude Include="..\..\..\programs\zstd\zstd_static.h" />
+    <ClInclude Include="..\..\..\programs\zstd\zstd_v01.h" />
+    <ClInclude Include="..\..\..\programs\zstd\zstd_v02.h" />
+    <ClInclude Include="..\..\..\programs\zstd\zstd_v03.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{69038E19-1F9B-4086-A6E4-C8076F51EB22}</ProjectGuid>
@@ -189,7 +211,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <EnablePREfast>true</EnablePREfast>
       <AdditionalOptions>/analyze:stacksize18000 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

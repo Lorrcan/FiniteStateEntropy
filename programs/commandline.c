@@ -45,6 +45,8 @@
 #include "bench.h"
 #include "fileio.h"   /* FIO_setCompressor */
 
+#include "isaac64\isaac64.h"
+
 //#include "fileiozstd.h"   /* FIO_setCompressor */
 
 
@@ -97,7 +99,7 @@ static int usage(void)
 {
 	DISPLAY("Usage :\n");
 	DISPLAY("%s [arg] inputFilename [outputFilename]\n", programName);
-	DISPLAY("Arguments :\n");
+	DISPLAY("Arguments %s :\n", getNumber64());
 	DISPLAY("(default): fse core loop timing tests\n");
 	DISPLAY(" -e : use fse (default)\n");
 	DISPLAY(" -h : use huff0\n");
