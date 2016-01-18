@@ -100,6 +100,8 @@ word flag;
 }
 
 ub8 getNumber64(){
+	randinit(TRUE);
+	isaac64();
 	return randrsl[0];
 }
 
