@@ -55,6 +55,8 @@ void FIO_overwriteMode(void);
 **************************************/
 unsigned long long FIO_compressFilename(const char* outfilename, const char* infilename, const char* password);
 unsigned long long FIO_decompressFilename (const char* outfilename, const char* infilename, const char* password);
+int FIO_compressZstdFilename(const char* outfilename, const char* infilename, const char* dictFileName, int compressionLevel, const char* passwordValue);
+int FIO_decompressZstdFilename(const char* outfilename, const char* infilename, const char* dictFileName);
 /*
 FIO_compressFilename :
     result : size of compressed file
