@@ -256,7 +256,8 @@ static unsigned FIO_GetMilliSpan(clock_t nPrevious)
 }
 
 static int FIO_blockID_to_blockSize(int id) { return (1 << id) KB; }
-
+size_t FIO_loadFile(void** dict_buffer, const char* dict_file_name);
+int FIO_getFiles(FILE** dst_file, FILE** src_file, const char* dst_file_name, const char* src_file_name);
 
 static void get_fileHandle(const char* input_filename, const char* output_filename, FILE** pfinput, FILE** pfoutput)
 {
@@ -959,6 +960,8 @@ typedef struct {
 	ZBUFF_DCtx* dctx;
 } dRess_t;
 
+
+
 static dRess_t FIO_createDResources(const char* dictFileName)
 {
 	dRess_t ress;
@@ -1169,7 +1172,12 @@ static int FIO_getFiles(FILE** fileOutPtr, FILE** fileInPtr,
 					return 1;
 				}
 				DISPLAY("Overwrite ? (y/N) : ");
-				while ((ch = getchar()) != '\n' && ch != EOF);   /* flush integrated */
+				ch = getchar();
+				if (getchar() != '\n')
+				{
+					ch = 'N';
+				}
+				//while ((ch = getchar()) != '\n' && ch != EOF);   /* flush integrated */
 				if ((ch != 'Y') && (ch != 'y'))
 				{
 					DISPLAY("No. Operation aborted : %s already exists \n", dstFileName);

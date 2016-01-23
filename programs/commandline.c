@@ -106,7 +106,6 @@ static int usage(void)
 	DISPLAY(" -p#: use password to encode\\decode\n");
 	DISPLAY(" -z : use zlib's huffman\n");
 	DISPLAY(" -s : use ZSTD\n");
-	DISPLAY(" -c : decompression ZSTD\n");
 	DISPLAY(" -d : decompression (default for %s extension)\n", FSE_EXTENSION);
 	DISPLAY(" -b : benchmark mode\n");
 	DISPLAY(" -i#: iteration loops [1-9](default : 4), benchmark mode only\n");
@@ -148,9 +147,7 @@ int main(int argc, char** argv)
 	const char* dictFileName = NULL;
 	int nextEntryIsDictionary = 0;
 
-	int zstdCompression = 0;
-	int zstdDecompression = 0;
-
+	int useZstd = 0;
 
 	/* Welcome message */
 	programName = argv[0];
@@ -197,21 +194,7 @@ int main(int argc, char** argv)
 					break;
 				case 's':
 					DISPLAY("\nZSTD compression\n");
-					// need to add compression
-					zstdCompression = 1;
-					//DISPLAY(zstd);
-					break;
-					// zstd selection
-				case 'c':
-					DISPLAY("\nZSTD decompression\n");
-					decode = 1;
-					zstdDecompression = 1;
-					break;
-				case 'a':
-					DISPLAY("\nZSTD compression\n");
-					// need to add compression
-					//zstd = 1;
-					//DISPLAY(zstd);
+					useZstd = 1;
 					break;
 					// zstd selection
 				case 'h':
@@ -313,10 +296,6 @@ int main(int argc, char** argv)
 		}
 	}
 
-
-
-
-
 	/* DISPLAYLEVEL(3, WELCOME_MESSAGE); */
 
 	/* No input filename ==> use stdin */
@@ -377,29 +356,23 @@ int main(int argc, char** argv)
 	if (!strcmp(input_filename, stdinmark) && IS_CONSOLE(stdin)) badusage();
 	if (!strcmp(output_filename, stdoutmark) && IS_CONSOLE(stdout)) badusage();
 
-
-
 	if (decode)
 	{
-		if (zstdDecompression){
+		if (useZstd){
 			FIO_decompressZstdFilename(output_filename, input_filename, dictFileName);
 		}
 		else
 			FIO_decompressFilename(output_filename, input_filename, passwordValue);
-
 	}
 	else
 	{
 		FIO_setCompressor(compressor);
-		DISPLAY("WARTOSC zstdCompression = %d\n", zstdCompression);
-		if (zstdCompression == 1){
+		if (useZstd){
 			FIO_compressZstdFilename(output_filename, input_filename, dictFileName, 1, passwordValue);
 		}
 		else{
-			//zstd = 0;
 			FIO_compressFilename(output_filename, input_filename, passwordValue);
 		}
-
 	}
 
 _end:
