@@ -58,8 +58,7 @@ void isaac64()
 	h -= d; e ^= g << 14; g += h; \
 }
 
-void randinit(flag)
-word flag;
+void randinit(word flag)
 {
 	word i;
 	ub8 a, b, c, d, e, f, g, h;

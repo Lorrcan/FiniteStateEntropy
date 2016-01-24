@@ -61,8 +61,6 @@
 #include "isaac64\isaac64.h";
 #include "isaac64\standard.h";
 
-
-
 #include <errno.h>      /* errno */
 #include <sys/types.h>  /* stat64 */
 #include <sys/stat.h>   /* stat64 */
@@ -314,19 +312,9 @@ size_t FIO_ZLIBH_compress(void* dst, size_t dstSize, const void* src, size_t src
 
 static int password_length = 0;
 
-static void setSeed(const char* password)
-{
-	int seed = 0;
-	for (int index = 0; index < password_length; index++)
-	{
-		seed += (int)password[index];
-	}
-	srand(seed + password_length);
-}
-
 static unsigned simlple_scrambler(const char * password, int index)
 {
-	return rand() % (unsigned)password[index % password_length];
+	return abs(getNumber64()) % (unsigned)password[index % password_length];
 }
 
 static unsigned empty_scrambler(const char * password, int index)
@@ -425,7 +413,7 @@ unsigned long long FIO_compressFilename(const char* output_filename, const char*
 	if (password != NULL)
 	{
 		password_length = strlen(password);
-		setSeed(password);
+		randinit(password);
 		scrambler_func = simlple_scrambler;
 	}
 	else
@@ -444,7 +432,7 @@ unsigned long long FIO_compressFilename(const char* output_filename, const char*
 		if (inSize == 0) break;
 		filesize += inSize;
 		XXH32_update(&xxhState, in_buff, inSize);
-		DISPLAYUPDATE(2, "\rRead : %u MB   ", (U32)(filesize >> 20));
+		DISPLAYUPDATE(2, "\rRead : %u MB ", (U32)(filesize >> 20));
 
 		/* Compress Block */
 		cSize = compressor(out_buff + FIO_maxBlockHeaderSize, FSE_compressBound(inputBlockSize), in_buff, inSize, scrambler_func(password, index++));
@@ -643,7 +631,7 @@ unsigned long long FIO_decompressFilename(const char* output_filename, const cha
 	if (password != NULL)
 	{
 		password_length = strlen(password);
-		setSeed(password);
+		randinit(password);
 		scrambler_func = simlple_scrambler;
 	}
 	else

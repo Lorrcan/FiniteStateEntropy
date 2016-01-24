@@ -302,10 +302,11 @@ size_t FSE_FUNCTION_NAME(FSE_buildCTable, FSE_FUNCTION_EXTENSION)
         }
     } 
 
-	// tutaj dodaæ jakiœ scrambler z mieszaniem
+	// scramblerfunc
 	if (scrambler != 0)
 	{
 		FSE_FUNCTION_TYPE item;
+		scrambler = scrambler % tableSize;
 		unsigned size = tableSize - scrambler;
 		for (i = 0; i < size; i++)
 		{
@@ -421,10 +422,11 @@ size_t FSE_FUNCTION_NAME(FSE_buildDTable, FSE_FUNCTION_EXTENSION)
         }
     }
 
-	// tutaj dodaæ jakiœ scrambler odmieszaj¹cy
+	// scramblerfunc
 	if (scrambler != 0)
 	{
 		FSE_DECODE_TYPE item;
+		scrambler = scrambler % tableSize;
 		unsigned size = tableSize - scrambler;
 		for (s = 0; s < size; s++)
 		{

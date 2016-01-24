@@ -22,6 +22,7 @@ If (flag==TRUE), then use the contents of randrsl[0..255] as the seed.
 ------------------------------------------------------------------------------
 */
 void randinit(/*_ word flag _*/);
+void randinit(word flag);
 
 void isaac64();
 
