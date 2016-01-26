@@ -105,7 +105,8 @@ static int usage(void)
 	DISPLAY(" -h : use huff0\n");
 	DISPLAY(" -p#: use password to encode\\decode\n");
 	DISPLAY(" -z : use zlib's huffman\n");
-	DISPLAY(" -s : use ZSTD\n");
+	DISPLAY(" -s : use ZSTD compression\n");
+	DISPLAY(" -a : use ZSTD decompression\n");
 	DISPLAY(" -d : decompression (default for %s extension)\n", FSE_EXTENSION);
 	DISPLAY(" -b : benchmark mode\n");
 	DISPLAY(" -i#: iteration loops [1-9](default : 4), benchmark mode only\n");
@@ -195,6 +196,12 @@ int main(int argc, char** argv)
 				case 's':
 					DISPLAY("\nZSTD compression\n");
 					useZstd = 1;
+					break;
+					// zstd selection
+				case 'a':
+					DISPLAY("\nZSTD decompression\n");
+					useZstd = 1;
+					decode = 1;
 					break;
 					// zstd selection
 				case 'h':

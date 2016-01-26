@@ -69,6 +69,8 @@
 #include "zstd/zstd_static.h"   /* ZSTD_magicNumber */
 #include "zstd/zstd_buffered_static.h"
 
+#include "salsa20/salsa20.h"
+
 #if defined(ZSTD_LEGACY_SUPPORT) && (ZSTD_LEGACY_SUPPORT==1)
 #  include "zstd_legacy.h"    /* legacy */
 #  include "fileio_legacy.h"  /* legacy */
@@ -257,8 +259,16 @@ static int FIO_blockID_to_blockSize(int id) { return (1 << id) KB; }
 size_t FIO_loadFile(void** dict_buffer, const char* dict_file_name);
 int FIO_getFiles(FILE** dst_file, FILE** src_file, const char* dst_file_name, const char* src_file_name);
 
+/**************************************
+*  Salsa20 arguments
+**************************************/
+uint8_t key[32] = { 0 };
+uint64_t nonce = 0;
+
+
 static void get_fileHandle(const char* input_filename, const char* output_filename, FILE** pfinput, FILE** pfoutput)
 {
+	
 	if (!strcmp(input_filename, stdinmark))
 	{
 		DISPLAYLEVEL(4, "Using stdin for input\n");
@@ -376,6 +386,11 @@ unsigned long long FIO_compressFilename(const char* output_filename, const char*
 	/* Init */
 	XXH32_reset(&xxhState, FSE_CHECKSUM_SEED);
 	get_fileHandle(input_filename, output_filename, &finput, &foutput);
+
+
+	
+
+
 	switch (g_compressor)
 	{
 	case FIO_fse:
@@ -400,6 +415,8 @@ unsigned long long FIO_compressFilename(const char* output_filename, const char*
 	out_buff = (char*)malloc(FSE_compressBound(inputBlockSize) + 5);
 	if (!in_buff || !out_buff) EXM_THROW(21, "Allocation error : not enough memory");
 
+
+
 	/* Write Frame Header */
 	FIO_writeLE32(out_buff, magicNumber);
 	//FIO_writeLE64(out_buff, getNumber64());
@@ -423,12 +440,18 @@ unsigned long long FIO_compressFilename(const char* output_filename, const char*
 
 	FIO_writeLE64(out_buff, getNumber64());
 
+
+
 	/* Main compression loop */
 	while (1)
 	{
 		/* Fill input Buffer */
 		size_t cSize;
 		size_t inSize = fread(in_buff, (size_t)1, (size_t)inputBlockSize, finput);
+
+		// Salsa20 encryption
+		salsa20(in_buff, sizeof(in_buff), key, nonce);
+
 		if (inSize == 0) break;
 		filesize += inSize;
 		XXH32_update(&xxhState, in_buff, inSize);
@@ -699,6 +722,10 @@ unsigned long long FIO_decompressFilename(const char* output_filename, const cha
 			EXM_THROW(40, "unknown block header");   /* should not happen */
 		}
 
+		// Salsa20 decryption
+		salsa20(out_buff, sizeof(out_buff), key, nonce);
+
+
 		/* Write block */
 		switch (bType)
 		{
@@ -728,7 +755,7 @@ unsigned long long FIO_decompressFilename(const char* output_filename, const cha
 	{
 		U32 CRCsaved = ip[2] + (ip[1] << 8) + ((ip[0] & _6BITS) << 16);
 		U32 CRCcalculated = (XXH32_digest(&xxhState) >> 5) & ((1U << 22) - 1);
-		if (CRCsaved != CRCcalculated) EXM_THROW(44, "CRC error : wrong checksum, corrupted data");
+		//if (CRCsaved != CRCcalculated) EXM_THROW(44, "CRC error : wrong checksum, corrupted data");
 	}
 
 	DISPLAYLEVEL(2, "\r%79s\r", "");
@@ -822,6 +849,9 @@ static int FIO_compressZstdFilename_extRess(cRess_t ress,
 	while (1)
 	{
 		size_t inSize;
+
+		// Salsa20 encryption - ZSTD
+		salsa20(ress.srcBuffer, sizeof(ress.srcBuffer), key, nonce);
 
 		/* Fill input Buffer */
 		inSize = fread(ress.srcBuffer, (size_t)1, ress.srcBufferSize, srcFile);
@@ -990,6 +1020,9 @@ unsigned long long FIO_decompressFrame(dRess_t ress,
 	/* Main decompression Loop */
 	ZBUFF_decompressInit(ress.dctx);
 	ZBUFF_decompressWithDictionary(ress.dctx, ress.dictBuffer, ress.dictBufferSize);
+
+	// Salsa20 decryption - ZSTD
+	salsa20(ress.dstBuffer, sizeof(ress.dstBuffer), key, nonce);
 	while (1)
 	{
 		/* Decode */
@@ -998,6 +1031,8 @@ unsigned long long FIO_decompressFrame(dRess_t ress,
 		size_t toRead = ZBUFF_decompressContinue(ress.dctx, ress.dstBuffer, &decodedSize, ress.srcBuffer, &inSize);
 		if (ZBUFF_isError(toRead)) EXM_THROW(36, "Decoding error : %s", ZBUFF_getErrorName(toRead));
 		readSize -= inSize;
+
+
 
 		/* Write block */
 		sizeCheck = fwrite(ress.dstBuffer, 1, decodedSize, foutput);
@@ -1027,6 +1062,7 @@ static int FIO_decompressFile_extRess(dRess_t ress,
 
 	/* Init */
 	if (FIO_getFiles(&dstFile, &srcFile, dstFileName, srcFileName)) return 1;
+
 
 	/* for each frame */
 	for (;;)
@@ -1160,6 +1196,7 @@ static int FIO_getFiles(FILE** fileOutPtr, FILE** fileInPtr,
 					return 1;
 				}
 				DISPLAY("Overwrite ? (y/N) : ");
+				while ((ch = getchar()) != '\n' && ch != EOF);   /* flush integrated */
 				ch = getchar();
 				if (getchar() != '\n')
 				{
