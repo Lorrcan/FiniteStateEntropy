@@ -183,7 +183,11 @@ int main(int argc, char** argv)
 				case 'H': usage(); return 0;
 
 					// Decoding
-				case 'd': decode = 1; bench = 0; break;
+				case 'd': decode = 1; bench = 0; 
+					
+					// TO DO INSERT 64 BIT KEY
+
+					break;
 
 					// Benchmark full mode
 				case 'b': bench = 1; break;
@@ -192,15 +196,24 @@ int main(int argc, char** argv)
 				case 'e':
 					BMK_SetByteCompressor(1);
 					compressor = FIO_fse;
+
+					// TO DO GENERATE 64 BIT KEY
+
 					break;
 				case 's':
 					DISPLAY("\nZSTD compression\n");
 					useZstd = 1;
+
+					// TO DO GENERATE 64 BIT KEY
+
 					break;
 					// zstd selection
 				case 'a':
 					DISPLAY("\nZSTD decompression\n");
 					useZstd = 1;
+
+					// TO DO INSERT 64 BIT KEY
+
 					decode = 1;
 					break;
 					// zstd selection
