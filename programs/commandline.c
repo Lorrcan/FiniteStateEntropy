@@ -102,9 +102,9 @@ static int usage(void)
 	DISPLAY("Arguments :\n");
 	DISPLAY("(default): fse core loop timing tests\n");
 	DISPLAY(" -e : use fse (default)\n");
-	DISPLAY(" -h : use huff0\n");
+	//DISPLAY(" -h : use huff0\n");
 	DISPLAY(" -p#: use password to encode\\decode\n");
-	DISPLAY(" -z : use zlib's huffman\n");
+	//DISPLAY(" -z : use zlib's huffman\n");
 	DISPLAY(" -s : use ZSTD compression\n");
 	DISPLAY(" -a : use ZSTD decompression\n");
 	DISPLAY(" -d : decompression (default for %s extension)\n", FSE_EXTENSION);
@@ -204,18 +204,21 @@ int main(int argc, char** argv)
 					decode = 1;
 					break;
 					// zstd selection
+					/*
 				case 'h':
 					BMK_SetByteCompressor(2);
 					compressor = FIO_huff0;
 					break;
 
 					// zlib mode
+					
 				case 'z':
 					BMK_SetByteCompressor(3);
 					compressor = FIO_zlibh;
 					break;
 
 					// Test
+					*/
 				case 't': decode = 1; output_filename = nulmark; break;
 
 					// Overwrite
