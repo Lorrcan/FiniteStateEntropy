@@ -109,14 +109,13 @@ typedef struct nodeElt_s {
     @dst : destination buffer
     @CTable : huffman tree to save, using huff0 representation
     @return : size of saved CTable */
-size_t HUF_writeCTable (void* dst, size_t maxDstSize, const HUF_CElt* CTable, U32 maxSymbolValue, U32 huffLog)
+size_t HUF_writeCTable(void* dst, size_t maxDstSize, const HUF_CElt* CTable, U32 maxSymbolValue, U32 huffLog, unsigned scrambler)
 {
     BYTE bitsToWeight[HUF_MAX_TABLELOG + 1];
     BYTE huffWeight[HUF_MAX_SYMBOL_VALUE + 1];
     U32 n;
     BYTE* op = (BYTE*)dst;
 	size_t size;
-	unsigned scrambler = 1;
 
      /* check conditions */
     if (maxSymbolValue > HUF_MAX_SYMBOL_VALUE + 1)
@@ -483,9 +482,6 @@ size_t HUF_compress2 (void* dst, size_t dstSize,
     BYTE* const ostart = (BYTE*)dst;
     BYTE* op = ostart;
     BYTE* const oend = ostart + dstSize;
-	if (scrambler)
-	{
-	}
 
     U32 count[HUF_MAX_SYMBOL_VALUE+1];
     HUF_CElt CTable[HUF_MAX_SYMBOL_VALUE+1];
@@ -511,7 +507,7 @@ size_t HUF_compress2 (void* dst, size_t dstSize,
     huffLog = (U32)errorCode;
 
     /* Write table description header */
-    errorCode = HUF_writeCTable (op, dstSize, CTable, maxSymbolValue, huffLog);
+    errorCode = HUF_writeCTable (op, dstSize, CTable, maxSymbolValue, huffLog, scrambler);
     if (HUF_isError(errorCode)) return errorCode;
     if (errorCode + 12 >= srcSize) return 0;   /* not useful to try compression */
     op += errorCode;
@@ -552,14 +548,13 @@ typedef struct { BYTE symbol; BYTE weight; } sortedSymbol_t;
 */
 static size_t HUF_readStats(BYTE* huffWeight, size_t hwSize, U32* rankStats,
                             U32* nbSymbolsPtr, U32* tableLogPtr,
-                            const void* src, size_t srcSize)
+                            const void* src, size_t srcSize, unsigned scrambler)
 {
     U32 weightTotal;
     U32 tableLog;
     const BYTE* ip = (const BYTE*) src;
     size_t iSize = ip[0];
     size_t oSize;
-	unsigned scrambler = 1;
     U32 n;
 
     //memset(huffWeight, 0, hwSize);   /* is not necessary, even though some analyzer complain ... */
@@ -630,7 +625,7 @@ static size_t HUF_readStats(BYTE* huffWeight, size_t hwSize, U32* rankStats,
 /* single-symbol decoding */
 /**************************/
 
-size_t HUF_readDTableX2 (U16* DTable, const void* src, size_t srcSize)
+size_t HUF_readDTableX2 (U16* DTable, const void* src, size_t srcSize, unsigned scrambler)
 {
     BYTE huffWeight[HUF_MAX_SYMBOL_VALUE + 1];
     U32 rankVal[HUF_ABSOLUTEMAX_TABLELOG + 1];   /* large enough for values from 0 to 16 */
@@ -645,7 +640,7 @@ size_t HUF_readDTableX2 (U16* DTable, const void* src, size_t srcSize)
     HUF_STATIC_ASSERT(sizeof(HUF_DEltX2) == sizeof(U16));   /* if compilation fails here, assertion is false */
     //memset(huffWeight, 0, sizeof(huffWeight));   /* is not necessary, even though some analyzer complain ... */
 
-    iSize = HUF_readStats(huffWeight, HUF_MAX_SYMBOL_VALUE + 1, rankVal, &nbSymbols, &tableLog, src, srcSize);
+    iSize = HUF_readStats(huffWeight, HUF_MAX_SYMBOL_VALUE + 1, rankVal, &nbSymbols, &tableLog, src, srcSize, scrambler);
     if (HUF_isError(iSize)) return iSize;
 
     /* check result */
@@ -742,13 +737,13 @@ size_t HUF_decompress1X2_usingDTable(
     return dstSize;
 }
 
-size_t HUF_decompress1X2 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize)
+size_t HUF_decompress1X2 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize, unsigned scrambler)
 {
     HUF_CREATE_STATIC_DTABLEX2(DTable, HUF_MAX_TABLELOG);
     const BYTE* ip = (const BYTE*) cSrc;
     size_t errorCode;
 
-    errorCode = HUF_readDTableX2 (DTable, cSrc, cSrcSize);
+	errorCode = HUF_readDTableX2(DTable, cSrc, cSrcSize, scrambler);
     if (HUF_isError(errorCode)) return errorCode;
     if (errorCode >= cSrcSize) return ERROR(srcSize_wrong);
     ip += errorCode;
@@ -854,13 +849,13 @@ size_t HUF_decompress4X2_usingDTable(
 }
 
 
-size_t HUF_decompress4X2 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize)
+size_t HUF_decompress4X2 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize, unsigned scrambler)
 {
     HUF_CREATE_STATIC_DTABLEX2(DTable, HUF_MAX_TABLELOG);
     const BYTE* ip = (const BYTE*) cSrc;
     size_t errorCode;
 
-    errorCode = HUF_readDTableX2 (DTable, cSrc, cSrcSize);
+    errorCode = HUF_readDTableX2 (DTable, cSrc, cSrcSize, scrambler);
     if (HUF_isError(errorCode)) return errorCode;
     if (errorCode >= cSrcSize) return ERROR(srcSize_wrong);
     ip += errorCode;
@@ -967,7 +962,7 @@ static void HUF_fillDTableX4(HUF_DEltX4* DTable, const U32 targetLog,
     }
 }
 
-size_t HUF_readDTableX4 (U32* DTable, const void* src, size_t srcSize)
+size_t HUF_readDTableX4 (U32* DTable, const void* src, size_t srcSize, unsigned scrambler)
 {
     BYTE weightList[HUF_MAX_SYMBOL_VALUE + 1];
     sortedSymbol_t sortedSymbol[HUF_MAX_SYMBOL_VALUE + 1];
@@ -985,7 +980,7 @@ size_t HUF_readDTableX4 (U32* DTable, const void* src, size_t srcSize)
     if (memLog > HUF_ABSOLUTEMAX_TABLELOG) return ERROR(tableLog_tooLarge);
     //memset(weightList, 0, sizeof(weightList));   /* is not necessary, even though some analyzer complain ... */
 
-    iSize = HUF_readStats(weightList, HUF_MAX_SYMBOL_VALUE + 1, rankStats, &nbSymbols, &tableLog, src, srcSize);
+    iSize = HUF_readStats(weightList, HUF_MAX_SYMBOL_VALUE + 1, rankStats, &nbSymbols, &tableLog, src, srcSize, scrambler);
     if (HUF_isError(iSize)) return iSize;
 
     /* check result */
@@ -1139,12 +1134,12 @@ size_t HUF_decompress1X4_usingDTable(
     return dstSize;
 }
 
-size_t HUF_decompress1X4 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize)
+size_t HUF_decompress1X4 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize, unsigned scrambler)
 {
     HUF_CREATE_STATIC_DTABLEX4(DTable, HUF_MAX_TABLELOG);
     const BYTE* ip = (const BYTE*) cSrc;
 
-    size_t hSize = HUF_readDTableX4 (DTable, cSrc, cSrcSize);
+	size_t hSize = HUF_readDTableX4(DTable, cSrc, cSrcSize, scrambler);
     if (HUF_isError(hSize)) return hSize;
     if (hSize >= cSrcSize) return ERROR(srcSize_wrong);
     ip += hSize;
@@ -1249,12 +1244,12 @@ size_t HUF_decompress4X4_usingDTable(
 }
 
 
-size_t HUF_decompress4X4 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize)
+size_t HUF_decompress4X4 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize, unsigned scrambler)
 {
     HUF_CREATE_STATIC_DTABLEX4(DTable, HUF_MAX_TABLELOG);
     const BYTE* ip = (const BYTE*) cSrc;
 
-    size_t hSize = HUF_readDTableX4 (DTable, cSrc, cSrcSize);
+    size_t hSize = HUF_readDTableX4 (DTable, cSrc, cSrcSize, scrambler);
     if (HUF_isError(hSize)) return hSize;
     if (hSize >= cSrcSize) return ERROR(srcSize_wrong);
     ip += hSize;
@@ -1336,7 +1331,7 @@ static void HUF_fillDTableX6LevelN(HUF_DDescX6* DDescription, HUF_DSeqX6* DSeque
 
 
 /* note : same preparation as X4 */
-size_t HUF_readDTableX6 (U32* DTable, const void* src, size_t srcSize)
+size_t HUF_readDTableX6 (U32* DTable, const void* src, size_t srcSize, unsigned scrambler)
 {
     BYTE weightList[HUF_MAX_SYMBOL_VALUE + 1];
     sortedSymbol_t sortedSymbol[HUF_MAX_SYMBOL_VALUE + 1];
@@ -1352,7 +1347,7 @@ size_t HUF_readDTableX6 (U32* DTable, const void* src, size_t srcSize)
     if (memLog > HUF_ABSOLUTEMAX_TABLELOG) return ERROR(tableLog_tooLarge);
     //memset(weightList, 0, sizeof(weightList));   /* is not necessary, even though some analyzer complain ... */
 
-    iSize = HUF_readStats(weightList, HUF_MAX_SYMBOL_VALUE + 1, rankStats, &nbSymbols, &tableLog, src, srcSize);
+    iSize = HUF_readStats(weightList, HUF_MAX_SYMBOL_VALUE + 1, rankStats, &nbSymbols, &tableLog, src, srcSize, scrambler);
     if (HUF_isError(iSize)) return iSize;
 
     /* check result */
@@ -1521,12 +1516,12 @@ size_t HUF_decompress1X6_usingDTable(
     return dstSize;
 }
 
-size_t HUF_decompress1X6 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize)
+size_t HUF_decompress1X6(void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize, unsigned scrambler)
 {
     HUF_CREATE_STATIC_DTABLEX6(DTable, HUF_MAX_TABLELOG);
     const BYTE* ip = (const BYTE*) cSrc;
 
-    size_t hSize = HUF_readDTableX6 (DTable, cSrc, cSrcSize);
+    size_t hSize = HUF_readDTableX6 (DTable, cSrc, cSrcSize, scrambler);
     if (HUF_isError(hSize)) return hSize;
     if (hSize >= cSrcSize) return ERROR(srcSize_wrong);
     ip += hSize;
@@ -1633,12 +1628,12 @@ size_t HUF_decompress4X6_usingDTable(
 }
 
 
-size_t HUF_decompress4X6 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize)
+size_t HUF_decompress4X6 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize, unsigned scrambler)
 {
     HUF_CREATE_STATIC_DTABLEX6(DTable, HUF_MAX_TABLELOG);
     const BYTE* ip = (const BYTE*) cSrc;
 
-    size_t hSize = HUF_readDTableX6 (DTable, cSrc, cSrcSize);
+	size_t hSize = HUF_readDTableX6(DTable, cSrc, cSrcSize, scrambler);
     if (HUF_isError(hSize)) return hSize;
     if (hSize >= cSrcSize) return ERROR(srcSize_wrong);
     ip += hSize;
@@ -1674,15 +1669,13 @@ static const algo_time_t algoTime[16 /* Quantization */][3 /* single, double, qu
     {{ 722,128}, {1891,145}, {1936,146}},   /* Q ==15 : 93-99% */
 };
 
-typedef size_t (*decompressionAlgo)(void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize);
+typedef size_t (*decompressionAlgo)(void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize, unsigned scrambler);
 
 size_t HUF_decompress (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize, unsigned scrambler)
 {
     static const decompressionAlgo decompress[3] = { HUF_decompress4X2, HUF_decompress4X4, HUF_decompress4X6 };
     /* estimate decompression time */
-	if (scrambler)
-	{	
-	}
+
     U32 Q;
     const U32 D256 = (U32)(dstSize >> 8);
     U32 Dtime[3];
@@ -1705,7 +1698,7 @@ size_t HUF_decompress (void* dst, size_t dstSize, const void* cSrc, size_t cSrcS
     if (Dtime[1] < Dtime[0]) algoNb = 1;
     if (Dtime[2] < Dtime[algoNb]) algoNb = 2;
 
-    return decompress[algoNb](dst, dstSize, cSrc, cSrcSize);
+    return decompress[algoNb](dst, dstSize, cSrc, cSrcSize, scrambler);
 
     //return HUF_decompress4X2(dst, dstSize, cSrc, cSrcSize);   /* multi-streams single-symbol decoding */
     //return HUF_decompress4X4(dst, dstSize, cSrc, cSrcSize);   /* multi-streams double-symbols decoding */

@@ -307,7 +307,7 @@ size_t FSE_FUNCTION_NAME(FSE_buildCTable, FSE_FUNCTION_EXTENSION)
 	{
 		FSE_FUNCTION_TYPE item;
 		scrambler = scrambler % tableSize;
-		unsigned size = tableSize - scrambler;
+		unsigned size = tableSize - scrambler - 1;
 		for (i = 0; i < size; i++)
 		{
 			item = tableSymbol[i];
@@ -427,7 +427,7 @@ size_t FSE_FUNCTION_NAME(FSE_buildDTable, FSE_FUNCTION_EXTENSION)
 	{
 		FSE_DECODE_TYPE item;
 		scrambler = scrambler % tableSize;
-		unsigned size = tableSize - scrambler;
+		unsigned size = tableSize - scrambler - 1;
 		for (s = 0; s < size; s++)
 		{
 			item = tableDecode[s];

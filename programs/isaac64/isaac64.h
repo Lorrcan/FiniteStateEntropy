@@ -27,6 +27,7 @@ void randinit(word flag);
 void isaac64();
 
 ub8 getNumber64();
+ub8 getNumber64ForPassword(word Word);
 
 
 /*

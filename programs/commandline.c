@@ -382,7 +382,7 @@ int main(int argc, char** argv)
 	if (decode)
 	{
 		if (useZstd){
-			FIO_decompressZstdFilename(output_filename, input_filename, dictFileName);
+			FIO_decompressZstdFilename(output_filename, input_filename, dictFileName, passwordValue);
 		}
 		else
 			FIO_decompressFilename(output_filename, input_filename, passwordValue);

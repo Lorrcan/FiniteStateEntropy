@@ -179,7 +179,7 @@ static size_t ZBUFF_limitCopy(void* dst, size_t maxDstSize, const void* src, siz
 static size_t ZBUFF_compressContinue_generic(ZBUFF_CCtx* zbc,
 	void* dst, size_t* maxDstSizePtr,
 	const void* src, size_t* srcSizePtr,
-	int flush)   /* aggregate : wait for full block before compressing */
+	int flush, unsigned scrambler)   /* aggregate : wait for full block before compressing */
 {
 	U32 notDone = 1;
 	const char* const istart = (const char*)src;
@@ -217,7 +217,7 @@ static size_t ZBUFF_compressContinue_generic(ZBUFF_CCtx* zbc,
 				cDst = op;   /* compress directly into output buffer (avoid flush stage) */
 			else
 				cDst = zbc->outBuff, oSize = zbc->outBuffSize;
-			cSize = ZSTD_compressContinue(zbc->zc, cDst, oSize, zbc->inBuff + zbc->inToCompress, iSize);
+			cSize = ZSTD_compressContinue(zbc->zc, cDst, oSize, zbc->inBuff + zbc->inToCompress, iSize, scrambler);
 			if (ZSTD_isError(cSize)) return cSize;
 			/* prepare next block */
 			zbc->inBuffTarget = zbc->inBuffPos + zbc->blockSize;
@@ -263,9 +263,9 @@ static size_t ZBUFF_compressContinue_generic(ZBUFF_CCtx* zbc,
 
 size_t ZBUFF_compressContinue(ZBUFF_CCtx* zbc,
 	void* dst, size_t* maxDstSizePtr,
-	const void* src, size_t* srcSizePtr)
+	const void* src, size_t* srcSizePtr, unsigned scrambler)
 {
-	return ZBUFF_compressContinue_generic(zbc, dst, maxDstSizePtr, src, srcSizePtr, 0);
+	return ZBUFF_compressContinue_generic(zbc, dst, maxDstSizePtr, src, srcSizePtr, 0, scrambler);
 }
 
 
@@ -275,7 +275,7 @@ size_t ZBUFF_compressContinue(ZBUFF_CCtx* zbc,
 size_t ZBUFF_compressFlush(ZBUFF_CCtx* zbc, void* dst, size_t* maxDstSizePtr)
 {
 	size_t srcSize = 0;
-	ZBUFF_compressContinue_generic(zbc, dst, maxDstSizePtr, &srcSize, &srcSize, 1);  /* use a valid src address instead of NULL, as some sanitizer don't like it */
+	ZBUFF_compressContinue_generic(zbc, dst, maxDstSizePtr, &srcSize, &srcSize, 1, 0);  /* use a valid src address instead of NULL, as some sanitizer don't like it, scrambler for flush = 0 */
 	return zbc->outBuffContentSize - zbc->outBuffFlushedSize;
 }
 
@@ -391,7 +391,7 @@ size_t ZBUFF_decompressWithDictionary(ZBUFF_DCtx* zbc, const void* src, size_t s
 
 /* *** Decompression *** */
 
-size_t ZBUFF_decompressContinue(ZBUFF_DCtx* zbc, void* dst, size_t* maxDstSizePtr, const void* src, size_t* srcSizePtr)
+size_t ZBUFF_decompressContinue(ZBUFF_DCtx* zbc, void* dst, size_t* maxDstSizePtr, const void* src, size_t* srcSizePtr, unsigned scrambler)
 {
 	const char* const istart = (const char*)src;
 	const char* ip = istart;
@@ -493,7 +493,7 @@ size_t ZBUFF_decompressContinue(ZBUFF_DCtx* zbc, void* dst, size_t* maxDstSizePt
 								 /* directly decode from src */
 								 size_t decodedSize = ZSTD_decompressContinue(zbc->zc,
 									 zbc->outBuff + zbc->outStart, zbc->outBuffSize - zbc->outStart,
-									 ip, neededInSize);
+									 ip, neededInSize, scrambler);
 								 if (ZSTD_isError(decodedSize)) return decodedSize;
 								 ip += neededInSize;
 								 if (!decodedSize) break;   /* this was just a header */
@@ -518,7 +518,7 @@ size_t ZBUFF_decompressContinue(ZBUFF_DCtx* zbc, void* dst, size_t* maxDstSizePt
 							 {
 								 size_t decodedSize = ZSTD_decompressContinue(zbc->zc,
 									 zbc->outBuff + zbc->outStart, zbc->outBuffSize - zbc->outStart,
-									 zbc->inBuff, neededInSize);
+									 zbc->inBuff, neededInSize, scrambler);
 								 if (ZSTD_isError(decodedSize)) return decodedSize;
 								 zbc->inPos = 0;   /* input is consumed */
 								 if (!decodedSize) { zbc->stage = ZBUFFds_read; break; }   /* this was just a header */

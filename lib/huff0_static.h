@@ -66,9 +66,9 @@ extern "C" {
 /******************************************
 *  Advanced functions
 ******************************************/
-size_t HUF_decompress4X2 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize);   /* single-symbol decoder */
-size_t HUF_decompress4X4 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize);   /* double-symbols decoder */
-size_t HUF_decompress4X6 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize);   /* quad-symbols decoder */
+size_t HUF_decompress4X2 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize, unsigned scrambler);   /* single-symbol decoder */
+size_t HUF_decompress4X4 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize, unsigned scrambler);   /* double-symbols decoder */
+size_t HUF_decompress4X6 (void* dst, size_t dstSize, const void* cSrc, size_t cSrcSize, unsigned scrambler);   /* quad-symbols decoder */
 
 
 #if defined (__cplusplus)

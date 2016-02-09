@@ -104,3 +104,9 @@ ub8 getNumber64(){
 	return randrsl[0];
 }
 
+ub8 getNumber64ForPassword(word word){
+	randinit(word);
+	isaac64();
+	return randrsl[0];
+}
+

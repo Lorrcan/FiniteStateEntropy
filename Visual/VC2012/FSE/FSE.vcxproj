@@ -51,6 +51,7 @@
     <ClCompile Include="..\..\..\programs\zstd\zstd_v01.c" />
     <ClCompile Include="..\..\..\programs\zstd\zstd_v02.c" />
     <ClCompile Include="..\..\..\programs\zstd\zstd_v03.c" />
+    <ClCompile Include="salsa20.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\lib\bitstream.h" />
@@ -77,6 +78,7 @@
     <ClInclude Include="..\..\..\programs\zstd\zstd_v01.h" />
     <ClInclude Include="..\..\..\programs\zstd\zstd_v02.h" />
     <ClInclude Include="..\..\..\programs\zstd\zstd_v03.h" />
+    <ClInclude Include="salsa20.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{69038E19-1F9B-4086-A6E4-C8076F51EB22}</ProjectGuid>

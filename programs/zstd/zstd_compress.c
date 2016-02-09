@@ -277,6 +277,8 @@ static size_t ZSTD_compressRleLiteralsBlock(void* dst, size_t maxDstSize, const 
 
 size_t ZSTD_minGain(size_t srcSize) { return (srcSize >> 6) + 1; }
 
+static unsigned scramblerValue = 0;
+
 static size_t ZSTD_compressLiterals(void* dst, size_t maxDstSize,
 	const void* src, size_t srcSize)
 {
@@ -287,7 +289,7 @@ static size_t ZSTD_compressLiterals(void* dst, size_t maxDstSize,
 
 	if (maxDstSize < litHeaderSize + 1) return ERROR(dstSize_tooSmall);   /* not enough space for compression */
 
-	hsize = HUF_compress(ostart + litHeaderSize, maxDstSize - litHeaderSize, src, srcSize, 0);
+	hsize = HUF_compress(ostart + litHeaderSize, maxDstSize - litHeaderSize, src, srcSize, scramblerValue);
 
 	if ((hsize == 0) || (hsize >= srcSize - minGain)) return ZSTD_noCompressLiterals(dst, maxDstSize, src, srcSize);
 	if (hsize == 1) return ZSTD_compressRleLiteralsBlock(dst, maxDstSize, src, srcSize);
@@ -2002,10 +2004,10 @@ static size_t ZSTD_compress_generic(ZSTD_CCtx* ctxPtr,
 
 size_t ZSTD_compressContinue(ZSTD_CCtx* zc,
 	void* dst, size_t dstSize,
-	const void* src, size_t srcSize)
+	const void* src, size_t srcSize, unsigned scrambler)
 {
 	const BYTE* const ip = (const BYTE*)src;
-
+	//scramblerValue = scrambler; nie dzia³a dekodowanie w ZSTD
 	/* Check if blocks follow each other */
 	if (src != zc->nextSrc)
 	{
@@ -2170,8 +2172,8 @@ size_t ZSTD_compress_advanced(ZSTD_CCtx* ctx,
 		if (ZSTD_isError(oSize)) return oSize;
 	}
 
-	/* body (compression) */
-	oSize = ZSTD_compressContinue(ctx, op, maxDstSize, src, srcSize);
+	/* body (compression) */ // TODO SCRAMBLER
+	oSize = ZSTD_compressContinue(ctx, op, maxDstSize, src, srcSize, 0);
 	if (ZSTD_isError(oSize)) return oSize;
 	op += oSize;
 	maxDstSize -= oSize;

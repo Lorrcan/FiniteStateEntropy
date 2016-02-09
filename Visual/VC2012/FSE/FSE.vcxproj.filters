@@ -63,6 +63,9 @@
     <ClCompile Include="..\..\..\programs\isaac64\isaac64.c">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
+    <ClCompile Include="salsa20.c">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\lib\fse.h">
@@ -135,6 +138,9 @@
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\programs\isaac64\standard.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="salsa20.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
   </ItemGroup>

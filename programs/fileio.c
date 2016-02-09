@@ -324,15 +324,13 @@ static int password_length = 0;
 
 static unsigned simlple_scrambler(const char * password, int index)
 {
-	return abs(getNumber64()) % (unsigned)password[index % password_length];
+	return abs(getNumber64ForPassword(password + index)) % (unsigned)password[index % password_length];
 }
 
 static unsigned empty_scrambler(const char * password, int index)
 {
-	if (password && index) {}
 	return 0;
 }
-
 
 
 static U64 FIO_getFileSize2(const char* infilename)
@@ -387,10 +385,6 @@ unsigned long long FIO_compressFilename(const char* output_filename, const char*
 	XXH32_reset(&xxhState, FSE_CHECKSUM_SEED);
 	get_fileHandle(input_filename, output_filename, &finput, &foutput);
 
-
-	
-
-
 	switch (g_compressor)
 	{
 	case FIO_fse:
@@ -430,7 +424,6 @@ unsigned long long FIO_compressFilename(const char* output_filename, const char*
 	if (password != NULL)
 	{
 		password_length = strlen(password);
-		randinit(password);
 		scrambler_func = simlple_scrambler;
 	}
 	else
@@ -654,7 +647,6 @@ unsigned long long FIO_decompressFilename(const char* output_filename, const cha
 	if (password != NULL)
 	{
 		password_length = strlen(password);
-		randinit(password);
 		scrambler_func = simlple_scrambler;
 	}
 	else
@@ -825,7 +817,7 @@ static void FIO_freeCResources(cRess_t ress)
 */
 static int FIO_compressZstdFilename_extRess(cRess_t ress,
 	const char* dstFileName, const char* srcFileName,
-	int cLevel)
+	int cLevel, const char* passwordValue)
 {
 	FILE* srcFile;
 	FILE* dstFile;
@@ -844,11 +836,26 @@ static int FIO_compressZstdFilename_extRess(cRess_t ress,
 	errorCode = ZBUFF_compressWithDictionary(ress.ctx, ress.dictBuffer, ress.dictBufferSize);
 	if (ZBUFF_isError(errorCode)) EXM_THROW(22, "Error initializing dictionary");
 
+	unsigned(*scrambler_func)(const char *, int);
+	unsigned index = 0;
+	if (passwordValue != NULL)
+	{
+		password_length = strlen(passwordValue);
+		scrambler_func = simlple_scrambler;
+	}
+	else
+	{
+		scrambler_func = empty_scrambler;
+	}
+
 	/* Main compression loop */
 	filesize = 0;
 	while (1)
 	{
 		size_t inSize;
+		// changePasswordValue to unsigned 
+
+		unsigned scrambler = scrambler_func(passwordValue, index++);
 
 		// Salsa20 encryption - ZSTD
 		salsa20(ress.srcBuffer, sizeof(ress.srcBuffer), key, nonce);
@@ -863,7 +870,7 @@ static int FIO_compressZstdFilename_extRess(cRess_t ress,
 			/* Compress (buffered streaming ensures appropriate formatting) */
 			size_t usedInSize = inSize;
 			size_t cSize = ress.dstBufferSize;
-			size_t result = ZBUFF_compressContinue(ress.ctx, ress.dstBuffer, &cSize, ress.srcBuffer, &usedInSize);
+			size_t result = ZBUFF_compressContinue(ress.ctx, ress.dstBuffer, &cSize, ress.srcBuffer, &usedInSize, scrambler);
 			if (ZBUFF_isError(result))
 				EXM_THROW(23, "Compression error : %s ", ZBUFF_getErrorName(result));
 			if (inSize != usedInSize)
@@ -915,7 +922,7 @@ int FIO_compressZstdFilename(const char* dstFileName, const char* srcFileName,
 	ress = FIO_createCResources(dictFileName);
 
 	/* Compress File */
-	issueWithSrcFile += FIO_compressZstdFilename_extRess(ress, dstFileName, srcFileName, compressionLevel);
+	issueWithSrcFile += FIO_compressZstdFilename_extRess(ress, dstFileName, srcFileName, compressionLevel, passwordValue);
 
 	/* Free resources */
 	FIO_freeCResources(ress);
@@ -954,7 +961,7 @@ int FIO_compressMultipleFilenames(const char** inFileNamesTable, unsigned nbFile
 		strcpy(dstFileName, inFileNamesTable[u]);
 		strcat(dstFileName, suffix);
 
-		missed_files += FIO_compressZstdFilename_extRess(ress, dstFileName, inFileNamesTable[u], compressionLevel);
+		missed_files += FIO_compressZstdFilename_extRess(ress, dstFileName, inFileNamesTable[u], compressionLevel, "TODO passwordValue");
 	}
 
 	/* Close & Free */
@@ -1012,7 +1019,7 @@ static void FIO_freeDResources(dRess_t ress)
 
 
 unsigned long long FIO_decompressFrame(dRess_t ress,
-	FILE* foutput, FILE* finput, size_t alreadyLoaded)
+	FILE* foutput, FILE* finput, size_t alreadyLoaded, const char* passwordValue)
 {
 	U64    frameSize = 0;
 	size_t readSize = alreadyLoaded;
@@ -1021,14 +1028,27 @@ unsigned long long FIO_decompressFrame(dRess_t ress,
 	ZBUFF_decompressInit(ress.dctx);
 	ZBUFF_decompressWithDictionary(ress.dctx, ress.dictBuffer, ress.dictBufferSize);
 
+	unsigned(*scrambler_func)(const char *, int);
+	unsigned index = 0;
+	if (passwordValue != NULL)
+	{
+		password_length = strlen(passwordValue);
+		scrambler_func = simlple_scrambler;
+	}
+	else
+	{
+		scrambler_func = empty_scrambler;
+	}
+
 	// Salsa20 decryption - ZSTD
 	salsa20(ress.dstBuffer, sizeof(ress.dstBuffer), key, nonce);
 	while (1)
 	{
+		unsigned scrambler = scrambler_func(passwordValue, index++);
 		/* Decode */
 		size_t sizeCheck;
 		size_t inSize = readSize, decodedSize = ress.dstBufferSize;
-		size_t toRead = ZBUFF_decompressContinue(ress.dctx, ress.dstBuffer, &decodedSize, ress.srcBuffer, &inSize);
+		size_t toRead = ZBUFF_decompressContinue(ress.dctx, ress.dstBuffer, &decodedSize, ress.srcBuffer, &inSize, scrambler);
 		if (ZBUFF_isError(toRead)) EXM_THROW(36, "Decoding error : %s", ZBUFF_getErrorName(toRead));
 		readSize -= inSize;
 
@@ -1054,7 +1074,7 @@ unsigned long long FIO_decompressFrame(dRess_t ress,
 
 
 static int FIO_decompressFile_extRess(dRess_t ress,
-	const char* dstFileName, const char* srcFileName)
+	const char* dstFileName, const char* srcFileName, const char* passwordValue)
 {
 	unsigned long long filesize = 0;
 	FILE* srcFile;
@@ -1081,7 +1101,7 @@ static int FIO_decompressFile_extRess(dRess_t ress,
 		}
 #endif   /* ZSTD_LEGACY_SUPPORT */
 
-		filesize += FIO_decompressFrame(ress, dstFile, srcFile, toRead);
+		filesize += FIO_decompressFrame(ress, dstFile, srcFile, toRead, passwordValue);
 	}
 
 	/* Final Status */
@@ -1097,12 +1117,12 @@ static int FIO_decompressFile_extRess(dRess_t ress,
 
 
 int FIO_decompressZstdFilename(const char* dstFileName, const char* srcFileName,
-	const char* dictFileName)
+	const char* dictFileName, const char* passwordValue)
 {
 	int missingFiles = 0;
 	dRess_t ress = FIO_createDResources(dictFileName);
 
-	missingFiles += FIO_decompressFile_extRess(ress, dstFileName, srcFileName);
+	missingFiles += FIO_decompressFile_extRess(ress, dstFileName, srcFileName, passwordValue);
 
 	FIO_freeDResources(ress);
 	return missingFiles;
@@ -1110,9 +1130,9 @@ int FIO_decompressZstdFilename(const char* dstFileName, const char* srcFileName,
 
 
 #define MAXSUFFIXSIZE 8
-int FIO_decompressMultipleFilenames(const char** srcNamesTable, unsigned nbFiles,
+int FIO_decompressMultipleFilenames(const char** srcNamesTable, unsigned nbFiles, 
 	const char* suffix,
-	const char* dictFileName)
+	const char* dictFileName,const char* passwordValue)
 {
 	unsigned u;
 	int skippedFiles = 0;
@@ -1140,7 +1160,7 @@ int FIO_decompressMultipleFilenames(const char** srcNamesTable, unsigned nbFiles
 		memcpy(dstFileName, srcFileName, sfnSize - suffixSize);
 		dstFileName[sfnSize - suffixSize] = '\0';
 
-		missingFiles += FIO_decompressFile_extRess(ress, dstFileName, srcFileName);
+		missingFiles += FIO_decompressFile_extRess(ress, dstFileName, srcFileName, passwordValue);
 	}
 
 	FIO_freeDResources(ress);

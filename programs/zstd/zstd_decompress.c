@@ -241,6 +241,7 @@ static size_t ZSTD_copyRawBlock(void* dst, size_t maxDstSize, const void* src, s
 	return srcSize;
 }
 
+static unsigned scramblerValue = 0;
 
 /** ZSTD_decompressLiterals
 @return : nb of bytes read from src, or an error code*/
@@ -255,7 +256,7 @@ static size_t ZSTD_decompressLiterals(void* dst, size_t* maxDstSizePtr,
 	if (litSize > *maxDstSizePtr) return ERROR(corruption_detected);
 	if (litCSize + 5 > srcSize) return ERROR(corruption_detected);
 
-	if (HUF_isError(HUF_decompress(dst, litSize, ip + 5, litCSize, 0))) return ERROR(corruption_detected);
+	if (HUF_isError(HUF_decompress(dst, litSize, ip + 5, litCSize, scramblerValue))) return ERROR(corruption_detected);
 
 	*maxDstSizePtr = litSize;
 	return litCSize + 5;
@@ -785,8 +786,9 @@ size_t ZSTD_nextSrcSizeToDecompress(ZSTD_DCtx* dctx)
 	return dctx->expected;
 }
 
-size_t ZSTD_decompressContinue(ZSTD_DCtx* ctx, void* dst, size_t maxDstSize, const void* src, size_t srcSize)
+size_t ZSTD_decompressContinue(ZSTD_DCtx* ctx, void* dst, size_t maxDstSize, const void* src, size_t srcSize, unsigned scrambler)
 {
+	//scramblerValue = scrambler; nie dzia³a dekodowanie w ZSTD
 	/* Sanity check */
 	if (srcSize != ctx->expected) return ERROR(srcSize_wrong);
 	if (dst != ctx->previousDstEnd)   /* not contiguous */
