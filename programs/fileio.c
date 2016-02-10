@@ -409,6 +409,11 @@ unsigned long long FIO_compressFilename(const char* output_filename, const char*
 	out_buff = (char*)malloc(FSE_compressBound(inputBlockSize) + 5);
 	if (!in_buff || !out_buff) EXM_THROW(21, "Allocation error : not enough memory");
 
+	////RC4 keystream encrypt attempt
+	unsigned char state[256], key[] = { "keykey" }, stream[1024];
+	int len = 9, idx;
+	ksa(state, key, 64);
+	prga(state, stream, len);
 
 
 	/* Write Frame Header */
